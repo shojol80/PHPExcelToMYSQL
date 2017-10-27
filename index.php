@@ -3,10 +3,22 @@ $servername = "localhost";
 $username   = "root";
 $password   = "";
 $dbname     = "myDBPDO";
-$table      = true;
+
 error_reporting(E_ALL);
 set_time_limit(0);
 date_default_timezone_set('Europe/London');
+
+
+try {
+    $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+    // set the PDO error mode to exception
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+     
+}
+
+catch (PDOException $e) {
+    echo "<br>" . $e->getMessage();
+}
 ?>
 <html>
 <head>
@@ -17,15 +29,42 @@ date_default_timezone_set('Europe/London');
 </head>
 <body>
 
-<h1>PHPExcel Reader Example #01</h1>
-<h2>Simple File Reader using PHPExcel_IOFactory::load()</h2>
 <?php
+
 /** PHPExcel_IOFactory */
 include 'Classes/PHPExcel/IOFactory.php';
-$inputFileName = './sampleData/file.xls';
+
+
+
+$files = scandir("sampleData");
+
+//var_dump($files);
+
+foreach($files as $file)
+{
+   // echo 'Checking file: "' . $file . '"...<br>';
+
+    if(endsWith($file, ".xls") || endsWith($file, ".xlsx"))
+    {
+        try
+        {
+            operation("sampleData/".$file);
+        }
+        catch(Exception $e)
+        {
+            echo $e;
+            //die($e);
+        }
+    }
+}   
+
+function operation ($inputFileName) {
+global $conn;
+$table      = true;
 echo 'Loading file ', pathinfo($inputFileName, PATHINFO_BASENAME), ' using IOFactory to identify the format<br />';
 $objPHPExcel = PHPExcel_IOFactory::load($inputFileName);
 echo '<hr />';
+
 $sheetData = $objPHPExcel->getActiveSheet()->toArray(null, true, true, true);
 //var_dump($sheetData);
 
@@ -43,24 +82,17 @@ $sql .= "cs1 varchar(40) null";
 $sql .= ");";
 
 
-//create table
-
 try {
-    $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
-    // set the PDO error mode to exception
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // use exec() because no results are returned
-    if ($table) {
+if ($table) {
         $conn->exec($sql);
         echo "Table created successfully";
-    }
-     
+}
 }
 
 catch (PDOException $e) {
     echo "<br>" . $e->getMessage();
 }
+
 
 //echo $sql;
 //var_dump($db);
@@ -100,6 +132,12 @@ if (is_array($sheetData)) {
     //var_dump($query);
 }
 
+}
+
+function endsWith($haystack, $needle)
+{
+    return $needle === "" || substr($haystack, -strlen($needle)) === $needle;
+}
 $conn = null;
 
 ?>
